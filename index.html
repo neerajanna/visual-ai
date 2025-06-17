@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live AI Workflow Builder</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Leader-line for drawing connector lines -->
+    <script src="https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js"></script>
+
+    <style>
+        :root {
+            --primary-start: #667eea;
+            --primary-end: #764ba2;
+            --font-sans: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .sidebar {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.95);
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+            transition: width 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .node-category {
+            margin-bottom: 25px;
+        }
+
+        .category-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .node-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: white;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .node-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-start);
+        }
+
+        .node-item:active {
+            cursor: grabbing;
+        }
+
+        .node-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+        }
+
+        .node-icon.start { background: #48bb78; }
+        .node-icon.action { background: #4299e1; }
+        .node-icon.condition { background: #ed8936; }
+        .node-icon.ai { background: #9f7aea; }
+        .node-icon.plugin { background: #38b2ac; }
+
+        .node-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .toolbar {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+            color: white;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+        }
+         .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at 20px 20px, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+                        linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            background-size: 40px 40px;
+        }
+        
+        .canvas {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-origin: 0 0;
+            overflow: visible;
+        }
+
+        .workflow-node {
+            position: absolute;
+            width: 180px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            cursor: move;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            color: #1a202c;
+        }
+        .workflow-node.selected {
+            border-color: var(--primary-start);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .node-header {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .node-body {
+            padding: 12px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .connection-point {
+            width: 14px;
+            height: 14px;
+            background: #cbd5e0;
+            border: 2px solid white;
+            border-radius: 50%;
+            position: absolute;
+            cursor: crosshair;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+        .connection-point:hover {
+            background: var(--primary-start);
+            transform: scale(1.2);
+        }
+        .connection-point.input { left: -7px; top: calc(50% - 7px); }
+        .connection-point.output { right: -7px; top: calc(50% - 7px); }
+        
+        .properties-panel, .output-panel {
+            position: fixed;
+            top: 0;
+            width: 350px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.98);
+            border-left: 1px solid rgba(0, 0, 0, 0.1);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -2px 0 20px rgba(0, 0, 0, 0.1);
+        }
+        .properties-panel { right: -350px; }
+        .properties-panel.open { right: 0; }
+        
+        .output-panel { 
+            right: -350px; 
+            border-left-color: transparent;
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .output-panel.open { right: 0; }
+        
+        .properties-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .properties-header h3 { font-size: 16px; font-weight: 600; }
+        .properties-content, .output-content { flex: 1; padding: 20px; overflow-y: auto; color: #1a202c; }
+        .output-content img { max-width: 100%; border-radius: 8px; margin-bottom: 10px; }
+        .output-content .output-item { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0; }
+        .output-content .output-item:last-child { border-bottom: none; }
+        .output-content h4 { font-size: 14px; font-weight: 600; margin-bottom: 5px; color: #1a202c;}
+        .output-content p { font-size: 12px; color: #4a5568; white-space: pre-wrap; word-break: break-word; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 500; color: #374151; }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: border-color 0.2s ease;
+            background: white;
+            color: #1a202c;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary-start);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-textarea { resize: vertical; min-height: 80px; }
+        
+        .ai-panel {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 50;
+            display: flex; flex-direction: column; gap: 10px;
+            opacity: 0;
+            transform: translateY(calc(100% + 15px));
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .ai-panel.open { opacity: 1; transform: translateY(0); }
+        .ai-input { flex: 1; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: none; }
+        .ai-controls { display: flex; gap: 10px; align-items: center; }
+        .loading { display: flex; align-items: center; gap: 8px; color: #6b7280; font-size: 13px; }
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid #e5e7eb; border-top: 2px solid var(--primary-start);
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; }
+            .sidebar { width: 100%; height: 50vh; border-right: none; border-bottom: 1px solid rgba(0,0,0,0.1); }
+            .properties-panel, .output-panel { width: 100%; height: 100%; top: -100%; right: 0; left: auto; transition: top 0.3s ease; }
+            .properties-panel.open, .output-panel.open { top: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar for Node Palette -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1>AI Workflow Builder</h1>
+                <p>Drag nodes to create intelligent workflows</p>
+            </div>
+            <div class="sidebar-content">
+                <div class="node-category">
+                    <div class="category-title">Core Nodes</div>
+                    <div class="node-item" draggable="true" data-type="Start"><div class="node-icon start"><i class="fas fa-play"></i></div><div class="node-label">Start</div></div>
+                    <div class="node-item" draggable="true" data-type="Action"><div class="node-icon action"><i class="fas fa-bolt"></i></div><div class="node-label">Action</div></div>
+                    <div class="node-item" draggable="true" data-type="Condition"><div class="node-icon condition"><i class="fas fa-question"></i></div><div class="node-label">Condition</div></div>
+                </div>
+                <div class="node-category">
+                    <div class="category-title">AI Nodes</div>
+                    <div class="node-item" draggable="true" data-type="AIPrompt"><div class="node-icon ai"><i class="fas fa-robot"></i></div><div class="node-label">AI Prompt</div></div>
+                    <div class="node-item" draggable="true" data-type="AIImage"><div class="node-icon ai"><i class="fas fa-image"></i></div><div class="node-label">AI Image</div></div>
+                </div>
+                 <div class="node-category">
+                    <div class="category-title">Plugins</div>
+                    <div class="node-item" draggable="true" data-type="HTTPRequest"><div class="node-icon plugin"><i class="fas fa-globe"></i></div><div class="node-label">HTTP Request</div></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content (Toolbar + Canvas) -->
+        <main class="main-content">
+            <div class="toolbar">
+                <button class="btn btn-secondary" onclick="app.toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <button class="btn btn-secondary" onclick="app.saveWorkflow()"><i class="fas fa-save"></i> Save</button>
+                <button class="btn btn-secondary" onclick="app.loadWorkflow()"><i class="fas fa-upload"></i> Load</button>
+                <button id="execute-button" class="btn btn-primary" onclick="app.executeWorkflow()" disabled><i class="fas fa-play"></i> Execute</button>
+                <button class="btn btn-primary" onclick="app.toggleAIPanel()"><i class="fas fa-robot"></i> AI Assistant</button>
+            </div>
+            <div class="canvas-container" id="canvas-container">
+                <div class="canvas" id="canvas">
+                    <!-- Workflow nodes will be added here dynamically -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Properties Panel (Sliding) -->
+    <div class="properties-panel" id="propertiesPanel">
+        <div class="properties-header">
+            <h3 id="properties-title">Node Properties</h3>
+            <button class="btn" style="background:transparent; color:white; font-size:16px;" onclick="app.closeProperties()">✕</button>
+        </div>
+        <div class="properties-content" id="propertiesContent">
+            <p>Select a node to edit its properties.</p>
+        </div>
+    </div>
+    
+    <div class="output-panel" id="outputPanel">
+        <div class="properties-header">
+            <h3>Workflow Output</h3>
+            <button class="btn" style="background:transparent; color:white; font-size:16px;" onclick="app.closeOutputPanel()">✕</button>
+        </div>
+        <div class="output-content" id="outputContent">
+            <p>Execute a workflow to see the output here.</p>
+        </div>
+    </div>
+    
+    <!-- AI Assistant Panel (Floating) -->
+    <div class="ai-panel" id="aiPanel">
+        <textarea class="ai-input" id="aiInput" placeholder="Describe your workflow... (e.g., 'When a new email arrives, analyze its sentiment with AI, and if it's negative, create a support ticket via HTTP.')"></textarea>
+        <div class="ai-controls">
+            <button class="btn btn-primary" onclick="app.generateWorkflowFromAI()">Generate Workflow</button>
+            <div class="loading" id="aiLoading" style="display: none;">
+                <div class="spinner"></div>
+                <span>Generating...</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    // --- Main Application Class ---
+    class App {
+        constructor() {
+            // DOM Elements
+            this.canvasContainer = document.getElementById('canvas-container');
+            this.canvas = document.getElementById('canvas');
+            this.palette = document.getElementById('sidebar');
+            this.propertiesPanel = document.getElementById('propertiesPanel');
+            this.propertiesContent = document.getElementById('propertiesContent');
+            this.propertiesTitle = document.getElementById('properties-title');
+            this.aiPanel = document.getElementById('aiPanel');
+            this.aiInput = document.getElementById('aiInput');
+            this.aiLoading = document.getElementById('aiLoading');
+            this.executeButton = document.getElementById('execute-button');
+            this.outputPanel = document.getElementById('outputPanel');
+            this.outputContent = document.getElementById('outputContent');
+
+            // State
+            this.nodes = {};
+            this.connections = [];
+            this.selectedNodeId = null;
+            this.startingConnector = null;
+            this.nextNodeId = 0;
+            this.isDraggingNode = false;
+            this.dragOffset = { x: 0, y: 0 };
+        }
+
+        init() {
+            this.initEventListeners();
+        }
+        
+        // --- Event Listeners Setup ---
+        initEventListeners() {
+            this.palette.addEventListener('dragstart', (e) => this.handlePaletteDragStart(e));
+            this.canvasContainer.addEventListener('dragover', (e) => e.preventDefault());
+            this.canvasContainer.addEventListener('drop', (e) => this.handleCanvasDrop(e));
+            this.canvasContainer.addEventListener('click', () => this.deselectAllNodes());
+
+            document.addEventListener('mousedown', (e) => this.handleNodeMouseDown(e));
+            document.addEventListener('mousemove', (e) => this.handleNodeMouseMove(e));
+            document.addEventListener('mouseup', () => this.handleNodeMouseUp());
+        }
+
+        // --- Drag and Drop Logic ---
+        handlePaletteDragStart(e) {
+            if (e.target.classList.contains('node-item')) {
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('text/plain', e.target.getAttribute('data-type'));
+            }
+        }
+        
+        handleCanvasDrop(e) {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('text/plain');
+            if (!type) return;
+
+            const canvasRect = this.canvasContainer.getBoundingClientRect();
+            let x = e.clientX - canvasRect.left;
+            let y = e.clientY - canvasRect.top;
+            
+            x -= 90;
+            y -= 40; 
+
+            this.createNode(type, x, y);
+        }
+        
+        // --- Node Manipulation ---
+        createNode(type, x, y, id = null, data = {}) {
+            const nodeId = id !== null ? id : `node_${this.nextNodeId++}`;
+            if (id !== null) {
+                const numericId = parseInt(id.split('_')[1]);
+                if (!isNaN(numericId) && numericId >= this.nextNodeId) {
+                    this.nextNodeId = numericId + 1;
+                }
+            }
+
+            const nodeElement = document.createElement('div');
+            nodeElement.id = nodeId;
+            nodeElement.className = 'workflow-node';
+            nodeElement.style.left = `${x}px`;
+            nodeElement.style.top = `${y}px`;
+
+            const initialData = this.getInitialNodeData(type);
+            const nodeData = {
+                id: nodeId,
+                type: type,
+                x: x,
+                y: y,
+                element: nodeElement,
+                data: { ...initialData, ...data },
+            };
+            
+            nodeElement.innerHTML = this.getNodeHTML(nodeData);
+            this.nodes[nodeId] = nodeData;
+            this.canvas.appendChild(nodeElement);
+            this.attachConnectorListeners(nodeElement);
+            
+            nodeElement.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.selectNode(nodeId);
+            });
+            this.updateExecuteButtonState();
+        }
+        
+        deleteSelectedNode() {
+            if (!this.selectedNodeId) return;
+
+            const nodeIdToDelete = this.selectedNodeId;
+
+            this.nodes[nodeIdToDelete].element.remove();
+            delete this.nodes[nodeIdToDelete];
+
+            const connectionsToRemove = this.connections.filter(c => c.from === nodeIdToDelete || c.to === nodeIdToDelete);
+            connectionsToRemove.forEach(conn => conn.line.remove());
+            this.connections = this.connections.filter(c => c.from !== nodeIdToDelete && c.to !== nodeIdToDelete);
+            
+            this.selectedNodeId = null;
+            this.closeProperties();
+            this.updateExecuteButtonState();
+        }
+
+        getNodeHTML(nodeData) {
+            const { type, data } = nodeData;
+            const typeInfo = this.getNodeTypeInfo(type);
+            return `
+                <div class="node-header">
+                    <div class="node-icon ${typeInfo.iconClass}"><i class="fas ${typeInfo.icon}"></i></div>
+                    <span class="node-title">${data.name || type}</span>
+                </div>
+                <div class="node-body">${data.description || typeInfo.description}</div>
+                <div class="connection-point input"></div>
+                <div class="connection-point output"></div>
+            `;
+        }
+        
+        getInitialNodeData(type) {
+            const defaults = {
+                Start: { name: 'Start', description: 'Begins the workflow.' },
+                Action: { name: 'Action', description: 'Performs a task.', action: 'log', content: 'Hello World!' },
+                Condition: { name: 'Condition', description: 'Checks a condition.', condition: 'context.variable === "value"' },
+                AIPrompt: { name: 'AI Prompt', description: 'Generates text with AI.', model: 'gemini-1.5-flash', prompt: 'Summarize: {input}', outputVar: 'aiSummary' },
+                AIImage: { name: 'AI Image', description: 'Generates an image.', prompt: 'A photorealistic cat in a top hat', outputVar: 'generatedImage' },
+                HTTPRequest: { name: 'HTTP Request', description: 'Calls an API endpoint.', method: 'GET', url: 'https://api.example.com/data', outputVar: 'apiData' },
+            };
+            return defaults[type] || { name: type, description: `A ${type} node.` };
+        }
+
+        getNodeTypeInfo(type) {
+             const types = {
+                Start: { iconClass: 'start', icon: 'fa-play', description: 'Workflow start point' },
+                Action: { iconClass: 'action', icon: 'fa-bolt', description: 'Perform a task' },
+                Condition: { iconClass: 'condition', icon: 'fa-question', description: 'Branching logic' },
+                AIPrompt: { iconClass: 'ai', icon: 'fa-robot', description: 'AI text generation' },
+                AIImage: { iconClass: 'ai', icon: 'fa-image', description: 'AI image generation' },
+                HTTPRequest: { iconClass: 'plugin', icon: 'fa-globe', description: 'Make an API call' },
+            };
+            return types[type] || { iconClass: 'action', icon: 'fa-cube', description: 'Custom node' };
+        }
+
+        handleNodeMouseDown(e) {
+            const targetNode = e.target.closest('.workflow-node');
+            if (targetNode) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.isDraggingNode = true;
+                this.dragOffset.x = e.clientX - targetNode.offsetLeft;
+                this.dragOffset.y = e.clientY - targetNode.offsetTop;
+                this.selectNode(targetNode.id); 
+            }
+        }
+
+        handleNodeMouseMove(e) {
+            if (this.isDraggingNode && this.selectedNodeId) {
+                e.preventDefault();
+                const node = this.nodes[this.selectedNodeId];
+                node.x = e.clientX - this.dragOffset.x;
+                node.y = e.clientY - this.dragOffset.y;
+                node.element.style.left = `${node.x}px`;
+                node.element.style.top = `${node.y}px`;
+                this.updateConnections(this.selectedNodeId);
+            }
+        }
+        
+        handleNodeMouseUp() {
+            this.isDraggingNode = false;
+        }
+        
+        selectNode(nodeId) {
+            this.deselectAllNodes();
+            this.selectedNodeId = nodeId;
+            if (nodeId) {
+                this.nodes[nodeId].element.classList.add('selected');
+                this.renderProperties(nodeId);
+            }
+        }
+        
+        deselectAllNodes() {
+            if (this.selectedNodeId && this.nodes[this.selectedNodeId]) {
+                this.nodes[this.selectedNodeId].element.classList.remove('selected');
+            }
+            this.selectedNodeId = null;
+            this.closeProperties();
+        }
+
+        // --- Connections Logic ---
+        attachConnectorListeners(nodeElement) {
+            nodeElement.querySelectorAll('.connection-point').forEach(point => {
+                point.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const nodeId = nodeElement.id;
+                    if (!this.startingConnector) {
+                        this.startingConnector = { nodeId, element: point };
+                        point.style.background = 'var(--primary-start)';
+                    } else {
+                        if (this.startingConnector.nodeId !== nodeId) {
+                            this.createConnection(this.startingConnector, { nodeId, element: point });
+                        }
+                        this.startingConnector.element.style.background = '';
+                        this.startingConnector = null;
+                    }
+                });
+            });
+        }
+
+        createConnection(start, end, loaded = false) {
+            if (!start.nodeId || !end.nodeId) return;
+            const line = new LeaderLine(start.element, end.element, {
+                color: '#a0aec0', size: 3, path: 'fluid', endPlug: 'arrow1'
+            });
+            this.connections.push({ from: start.nodeId, to: end.nodeId, line });
+        }
+        
+        updateConnections(nodeId) {
+            this.connections.forEach(conn => {
+                if (conn.from === nodeId || conn.to === nodeId) {
+                    try { conn.line.position(); } catch (e) {}
+                }
+            });
+        }
+
+        // --- Properties Panel ---
+        renderProperties(nodeId) {
+            const node = this.nodes[nodeId];
+            this.propertiesTitle.textContent = `${node.data.name} Properties`;
+            let content = '';
+            content += this.createFormInput('name', 'Name', node.data.name, 'text');
+            content += this.createFormTextarea('description', 'Description', node.data.description);
+            
+            switch(node.type) {
+                case 'Action':
+                    content += this.createFormInput('content', 'Log Content', node.data.content, 'text');
+                    break;
+                case 'Condition':
+                    content += this.createFormInput('condition', 'Condition', node.data.condition, 'text');
+                    break;
+                case 'HTTPRequest':
+                    content += this.createFormSelect('method', 'Method', node.data.method, ['GET', 'POST', 'PUT']);
+                    content += this.createFormInput('url', 'URL', node.data.url, 'text');
+                    content += this.createFormInput('outputVar', 'Output Variable', node.data.outputVar, 'text');
+                    break;
+                case 'AIPrompt':
+                     content += this.createFormSelect('model', 'AI Text Model', node.data.model, ['gemini-1.5-flash']);
+                     content += this.createFormTextarea('prompt', 'Prompt Template', node.data.prompt);
+                     content += this.createFormInput('outputVar', 'Output Variable', node.data.outputVar, 'text');
+                     break;
+                case 'AIImage':
+                     content += this.createFormTextarea('prompt', 'Image Prompt', node.data.prompt);
+                     content += this.createFormInput('outputVar', 'Output Variable', node.data.outputVar, 'text');
+                     break;
+            }
+            // UPDATE: Add suggestions panel here
+            content += this.getSuggestionsHTML(node);
+            content += `<div class="form-group mt-6"><button class="btn w-full" style="background-color: #ef4444; color: white;" onclick="app.deleteSelectedNode()">Delete Node</button></div>`;
+            this.propertiesContent.innerHTML = content;
+            this.propertiesPanel.classList.add('open');
+            this.attachPropertyListeners(nodeId);
+        }
+        
+        // --- UPDATE: New Suggestions Feature ---
+        getSuggestionsHTML(node) {
+            let suggestions = [];
+            switch(node.type) {
+                case 'Start':
+                    suggestions = ['AIPrompt', 'HTTPRequest', 'Action'];
+                    break;
+                case 'AIPrompt':
+                case 'HTTPRequest':
+                    suggestions = ['Condition', 'Action', 'AIImage'];
+                    break;
+                case 'Action':
+                    suggestions = ['Action', 'AIPrompt'];
+                    break;
+                case 'Condition':
+                     suggestions = ['Action']; // Suggest action for true/false paths
+                    break;
+            }
+            if (suggestions.length === 0) return '';
+            
+            let buttonsHTML = suggestions.map(type => {
+                const typeInfo = this.getNodeTypeInfo(type);
+                return `<button class="btn btn-secondary" onclick="app.addSuggestedNode('${node.id}', '${type}')"><i class="fas ${typeInfo.icon}"></i> Add ${type}</button>`
+            }).join('');
+            
+            return `<div class="form-group mt-6">
+                        <label class="form-label">Next Step Suggestions</label>
+                        <div class="flex flex-wrap gap-2">${buttonsHTML}</div>
+                    </div>`;
+        }
+
+        addSuggestedNode(fromNodeId, newNodeType) {
+            const fromNode = this.nodes[fromNodeId];
+            if (!fromNode) return;
+            
+            // Position the new node relative to the source node
+            const x = fromNode.x + 220;
+            const y = fromNode.y;
+            
+            this.createNode(newNodeType, x, y);
+            const newNode = Object.values(this.nodes).pop(); // Get the most recently created node
+            
+            // Automatically create a connection
+            this.createConnection(
+                { nodeId: fromNodeId, element: fromNode.element.querySelector('.connection-point.output') },
+                { nodeId: newNode.id, element: newNode.element.querySelector('.connection-point.input') }
+            );
+            
+            // Select the new node to show its properties
+            this.selectNode(newNode.id);
+        }
+
+
+        attachPropertyListeners(nodeId) {
+            this.propertiesContent.querySelectorAll('input, textarea, select').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const prop = e.target.dataset.prop;
+                    this.nodes[nodeId].data[prop] = e.target.value;
+                    if (prop === 'name') {
+                        this.nodes[nodeId].element.querySelector('.node-title').textContent = e.target.value;
+                    }
+                });
+            });
+        }
+
+        createFormInput(prop, label, value, type) {
+            return `<div class="form-group"><label class="form-label">${label}</label><input data-prop="${prop}" type="${type}" class="form-input" value="${value || ''}"></div>`;
+        }
+        createFormTextarea(prop, label, value) {
+            return `<div class="form-group"><label class="form-label">${label}</label><textarea data-prop="${prop}" class="form-textarea">${value || ''}</textarea></div>`;
+        }
+        createFormSelect(prop, label, value, options) {
+            let optionsHTML = options.map(opt => `<option value="${opt}" ${value === opt ? 'selected' : ''}>${opt}</option>`).join('');
+            return `<div class="form-group"><label class="form-label">${label}</label><select data-prop="${prop}" class="form-select">${optionsHTML}</select></div>`;
+        }
+
+        closeProperties() {
+            this.propertiesPanel.classList.remove('open');
+        }
+
+        // --- Save / Load ---
+        saveWorkflow() {
+             const workflowData = {
+                nodes: Object.values(this.nodes).map(n => ({ id: n.id, type: n.type, x: n.x, y: n.y, data: n.data })),
+                connections: this.connections.map(c => ({ from: c.from, to: c.to })),
+            };
+            const dataStr = JSON.stringify(workflowData, null, 2);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'workflow.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        loadWorkflow() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        this.buildWorkflowFromJSON(data);
+                    } catch (error) {
+                        alert("Error loading workflow: " + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
+        buildWorkflowFromJSON(data) {
+            this.canvas.innerHTML = '';
+            this.connections.forEach(c => c.line.remove());
+            this.nodes = {};
+            this.connections = [];
+            this.selectedNodeId = null;
+            this.nextNodeId = 0;
+
+            data.nodes.forEach(nodeData => {
+                this.createNode(nodeData.type, nodeData.x, nodeData.y, nodeData.id, nodeData.data);
+            });
+
+            data.connections.forEach(connData => {
+                const fromNode = this.nodes[connData.from];
+                const toNode = this.nodes[connData.to];
+                if (fromNode && toNode) {
+                    this.createConnection(
+                        { nodeId: connData.from, element: fromNode.element.querySelector('.connection-point.output') },
+                        { nodeId: connData.to, element: toNode.element.querySelector('.connection-point.input') }
+                    );
+                }
+            });
+            this.updateExecuteButtonState();
+        }
+        
+        // --- AI & Execution Logic ---
+        async generateWorkflowFromAI() {
+            const description = this.aiInput.value;
+            if (!description.trim()) {
+                alert("Please describe the workflow you want to generate.");
+                return;
+            }
+            this.aiLoading.style.display = 'flex';
+            
+            const systemPrompt = `You are a helpful workflow generator. A user will describe a workflow. Your task is to convert this description into a valid JSON structure that represents the workflow. The JSON must have two keys: "nodes" and "connections".
+            
+            Each node object in the "nodes" array must have: "id" (string like "node_0"), "type" (string, one of "Start", "Action", "Condition", "AIPrompt", "AIImage", "HTTPRequest"), "x" (number), "y" (number), and "data" (object with "name" and "description", plus type-specific properties).
+            Each connection object in the "connections" array must have: "from" (string, the source node id) and "to" (string, the target node id).
+            
+            Example: For "Create a photorealistic image of a red car", the output should look like this:
+            {
+              "nodes": [
+                { "id": "node_0", "type": "Start", "x": 100, "y": 150, "data": { "name": "Start Image Generation", "description": "Begins the process." } },
+                { "id": "node_1", "type": "AIImage", "x": 300, "y": 150, "data": { "name": "Generate Car Image", "description": "Creates the image.", "prompt": "A photorealistic red sports car", "outputVar": "carImage" } }
+              ],
+              "connections": [ { "from": "node_0", "to": "node_1" } ]
+            }
+            Ensure node positions (x, y) are logical and spaced out.`;
+            
+            try {
+                const resultJsonString = await this.callGeminiAPI('gemini-1.5-flash', systemPrompt, description, true);
+                const generatedWorkflow = JSON.parse(resultJsonString);
+                this.buildWorkflowFromJSON(generatedWorkflow);
+                this.toggleAIPanel();
+            } catch (error) {
+                alert(`AI Generation Failed: ${error.message || error}`);
+                console.error(error);
+            } finally {
+                this.aiLoading.style.display = 'none';
+            }
+        }
+
+        async executeWorkflow() {
+            const startNode = Object.values(this.nodes).find(n => n.type === 'Start');
+            if (!startNode) {
+                alert("Cannot execute. A 'Start' node is required to begin a workflow.");
+                return;
+            }
+            
+            this.outputContent.innerHTML = '<p>Starting workflow execution...</p>';
+            this.outputPanel.classList.add('open');
+            this.closeProperties(); 
+
+            console.clear();
+            console.log("--- Starting Workflow Execution ---");
+            await this.traverseWorkflow(startNode.id, {});
+            console.log("--- Workflow Execution Finished ---");
+        }
+        
+        async traverseWorkflow(nodeId, context) {
+            const node = this.nodes[nodeId];
+            if (!node) return;
+
+            console.log(`%c[Executing] ${node.data.name} (Type: ${node.type})`, 'color: #667eea; font-weight: bold;');
+            
+            let result = {};
+            let outputTitle = `${node.data.name} Result`;
+            
+            try {
+                switch(node.type) {
+                    case 'AIPrompt':
+                        const promptText = node.data.prompt.replace(/\{(\w+)\}/g, (match, key) => context[key] || match);
+                        result = await this.callGeminiAPI(node.data.model, promptText, `Executing text prompt for node ${node.id}`);
+                        console.log(`[AI Text Result]`, result);
+                        this.addOutputItem(outputTitle, `<p>${result}</p>`);
+                        if(node.data.outputVar) context[node.data.outputVar] = result;
+                        break;
+                    case 'AIImage':
+                        const imagePromptText = node.data.prompt.replace(/\{(\w+)\}/g, (match, key) => context[key] || match);
+                        result = await this.callImagenAPI(imagePromptText);
+                        console.log(`[AI Image Result] An image was generated.`);
+                        this.addOutputItem(outputTitle, `<img src="${result}" alt="Generated by AI">`);
+                        if(node.data.outputVar) context[node.data.outputVar] = result;
+                        break;
+                    case 'HTTPRequest':
+                        const url = node.data.url;
+                        console.log(`[HTTP] Making ${node.data.method} request to ${url}`);
+                        const response = await fetch(url, { method: node.data.method });
+                        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        result = await response.json();
+                        console.log(`[HTTP Result]`, result);
+                        this.addOutputItem(outputTitle, `<pre>${JSON.stringify(result, null, 2)}</pre>`);
+                         if(node.data.outputVar) context[node.data.outputVar] = result;
+                        break;
+                    case 'Condition':
+                        const conditionResult = Math.random() > 0.5; // Simulate true/false
+                        console.log(`[Condition] '${node.data.condition}' evaluated to: ${conditionResult}`);
+                        this.addOutputItem(outputTitle, `<p>Condition evaluated to: <strong>${conditionResult}</strong></p>`);
+                        break;
+                    case 'Action':
+                        console.log(`[Action] Log: ${node.data.content}`);
+                        this.addOutputItem(outputTitle, `<p>Logged to console: "${node.data.content}"</p>`);
+                        break;
+                }
+            } catch (error) {
+                console.error(`Error executing node ${node.id}: ${error.message || error}`);
+                this.addOutputItem(`Error: ${node.data.name}`, `<p style="color:red;">${error.message}</p>`);
+                return; 
+            }
+
+            const outgoingConnections = this.connections.filter(c => c.from === nodeId);
+            for (const conn of outgoingConnections) {
+                await this.traverseWorkflow(conn.to, context);
+            }
+        }
+        
+        async callGeminiAPI(model, systemPrompt, userPrompt, isJson = false) {
+             const apiKey = "AIzaSyDUE2BEeVimLNoyRcRNi3kJXosGTlFUmWQ"; 
+             
+             if (model.indexOf('gemini') === -1) {
+                throw new Error(`The selected model "${model}" is not a valid Gemini text model.`);
+             }
+
+             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+            const requestPayload = {
+                contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nUser request: ${userPrompt}` }] }],
+                ...(isJson && { generationConfig: { responseMimeType: "application/json" } })
+            };
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestPayload)
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.json();
+                throw new Error(`Google API Error: ${errorBody.error.message}`);
+            }
+
+            const result = await response.json();
+            return result.candidates[0].content.parts[0].text;
+        }
+        
+        async callImagenAPI(prompt) {
+            const apiKey = "AIzaSyDUE2BEeVimLNoyRcRNi3kJXosGTlFUmWQ";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+
+            const payload = { instances: [{ prompt: prompt }], parameters: { "sampleCount": 1 } };
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                 if (!response.ok) {
+                    const errorBody = await response.json();
+                    throw new Error(`Image Generation API Error: ${errorBody.error.message}`);
+                }
+                
+                const result = await response.json();
+                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                    return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                } else {
+                    throw new Error("Image generation failed or returned an unexpected format.");
+                }
+            } catch (error) {
+                if (error.message && error.message.includes("billed users")) {
+                    console.warn("Imagen API call failed:", error.message);
+                    alert("Live Image Generation Failed:\nThe Imagen API requires a billed Google Cloud account. A placeholder image will be shown instead.");
+                    return `https://placehold.co/512x512/764ba2/ffffff?text=Mock+Image+For%0A${encodeURIComponent(prompt)}`;
+                }
+                throw error;
+            }
+        }
+
+        // --- UI Toggles & State Updates ---
+        updateExecuteButtonState() {
+            const hasStartNode = Object.values(this.nodes).some(n => n.type === 'Start');
+            this.executeButton.disabled = !hasStartNode;
+        }
+
+        toggleSidebar() {
+            alert("Sidebar toggle for mobile view.");
+        }
+        toggleAIPanel() {
+            this.aiPanel.classList.toggle('open');
+        }
+        
+        addOutputItem(title, contentHTML) {
+            const item = document.createElement('div');
+            item.className = 'output-item';
+            item.innerHTML = `<h4>${title}</h4>${contentHTML}`;
+            
+            const initialMessage = this.outputContent.querySelector('p');
+            if (initialMessage) initialMessage.remove();
+
+            this.outputContent.appendChild(item);
+            this.outputContent.scrollTop = this.outputContent.scrollHeight;
+        }
+        
+        closeOutputPanel() {
+            this.outputPanel.classList.remove('open');
+        }
+    }
+
+    // --- Global App Instance and Functions ---
+    const app = new App();
+    window.onload = () => app.init();
+    </script>
+</body>
+</html>
