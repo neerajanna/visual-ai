@@ -958,7 +958,7 @@
         }
         
         async callGeminiAPI(model, systemPrompt, userPrompt, isJson = false) {
-             const apiKey = "AIzaSyDUE2BEeVimLNoyRcRNi3kJXosGTlFUmWQ"; 
+             const apiKey = "AIzaSyDnWM1olV9EcEXVDAZ74Xpcbe4UKtGh32Q"; 
              
              if (model.indexOf('gemini') === -1) {
                 throw new Error(`The selected model "${model}" is not a valid Gemini text model.`);
@@ -987,7 +987,7 @@
         }
         
         async callImagenAPI(prompt) {
-            const apiKey = "AIzaSyDUE2BEeVimLNoyRcRNi3kJXosGTlFUmWQ";
+            const apiKey = "AIzaSyDnWM1olV9EcEXVDAZ74Xpcbe4UKtGh32Q";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
 
             const payload = { instances: [{ prompt: prompt }], parameters: { "sampleCount": 1 } };
@@ -1056,3 +1056,4 @@
     </script>
 </body>
 </html>
+
