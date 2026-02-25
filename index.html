@@ -871,7 +871,7 @@
             Ensure node positions (x, y) are logical and spaced out.`;
             
             try {
-                const resultJsonString = await this.callGeminiAPI('gemini-1.5-flash', systemPrompt, description, true);
+                const resultJsonString = await this.callGeminiAPI('gemini-2.0-flash', systemPrompt, description, true);
                 const generatedWorkflow = JSON.parse(resultJsonString);
                 this.buildWorkflowFromJSON(generatedWorkflow);
                 this.toggleAIPanel();
@@ -958,7 +958,7 @@
         }
         
         async callGeminiAPI(model, systemPrompt, userPrompt, isJson = false) {
-             const apiKey = "AIzaSyDnWM1olV9EcEXVDAZ74Xpcbe4UKtGh32Q"; 
+             const apiKey = "AIzaSyBCjOB21u_62PSNaew1ZJj--TqRsMC757w"; 
              
              if (model.indexOf('gemini') === -1) {
                 throw new Error(`The selected model "${model}" is not a valid Gemini text model.`);
@@ -1056,4 +1056,5 @@
     </script>
 </body>
 </html>
+
 
